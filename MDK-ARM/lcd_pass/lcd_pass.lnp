@@ -1,0 +1,28 @@
+--cpu=Cortex-M4.fp.sp
+"lcd_pass\startup_stm32f411xe.o"
+"lcd_pass\i2c-lcd.o"
+"lcd_pass\main.o"
+"lcd_pass\stm32f4xx_it.o"
+"lcd_pass\stm32f4xx_hal_msp.o"
+"lcd_pass\stm32f4xx_hal_i2c.o"
+"lcd_pass\stm32f4xx_hal_i2c_ex.o"
+"lcd_pass\stm32f4xx_hal_rcc.o"
+"lcd_pass\stm32f4xx_hal_rcc_ex.o"
+"lcd_pass\stm32f4xx_hal_flash.o"
+"lcd_pass\stm32f4xx_hal_flash_ex.o"
+"lcd_pass\stm32f4xx_hal_flash_ramfunc.o"
+"lcd_pass\stm32f4xx_hal_gpio.o"
+"lcd_pass\stm32f4xx_hal_dma_ex.o"
+"lcd_pass\stm32f4xx_hal_dma.o"
+"lcd_pass\stm32f4xx_hal_pwr.o"
+"lcd_pass\stm32f4xx_hal_pwr_ex.o"
+"lcd_pass\stm32f4xx_hal_cortex.o"
+"lcd_pass\stm32f4xx_hal.o"
+"lcd_pass\stm32f4xx_hal_exti.o"
+"lcd_pass\stm32f4xx_hal_tim.o"
+"lcd_pass\stm32f4xx_hal_tim_ex.o"
+"lcd_pass\system_stm32f4xx.o"
+--strict --scatter "lcd_pass\lcd_pass.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "lcd_pass.map" -o lcd_pass\lcd_pass.axf
