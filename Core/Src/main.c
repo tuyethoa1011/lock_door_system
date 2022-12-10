@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c-lcd.h"
+#include "string.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -66,6 +67,9 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim10;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -74,13 +78,27 @@ I2C_HandleTypeDef hi2c1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM1_Init(void);
+static void MX_TIM10_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t key[16]; //contains 16 character 
+uint8_t key[16] = ""; //contains 16 character 	//temp array
+uint8_t user_pass [16] = "";
+
+int wrongpass_count = 0;
+char default_pass[16] = ""; //do linh kien ban phim co van de nen doi mat khau mac dinh sang 012378#, mat khau mac dinh doi lai sau khi thay ban phim 012345678#    
+
+
+void delay_ms(long int time);
+void delay_1ms(void);
+char read_keypad(void);
+void password_enter(uint8_t *arr, int count);
+void keypad_password(void);
+
 
 char read_keypad (void)
 {	
@@ -206,11 +224,120 @@ char read_keypad (void)
 		while (!(HAL_GPIO_ReadPin (C4_PORT, C4_PIN)));   // wait till the button is pressed
 		return 'D';
 	}
-	
-	
-
 }
+
+
+void password_enter(uint8_t *arr,int count)
+{
+			int i = 0;
+			//key[i] la mang giup de xac thuc mat khau luon
+			while(i<count)
+			{
+				key[i] = read_keypad();
+			
+				if(key[i]=='#') 
+				{
+					break;
+				}
+			
+				if(key[i] != 0x01)
+				{
+					lcd_put_cur(1,i);
+					lcd_send_data(key[i]);
+					++i;
+				}
+				HAL_Delay(100);	
+		}
+}
+
+
+void keypad_password(void)
+{
+		lcd_clear();
+				lcd_put_cur(0,0);
+				lcd_send_string("ENTER PASSWORD: ");
 	
+				password_enter(key,16);
+		
+				
+				memcpy(user_pass,key,sizeof(key));
+				
+				memset(key,0,sizeof(key));
+			
+				if(strncmp((const char*)user_pass,(const char*)default_pass,16)==0)
+				{
+					//dung mat khau thi minh se mo den bang chan PD13
+					//dong thoi hien thi -- UNLOCKED -- roi giu cho den khi nao nut bam duoc cai dat muc dich de kich tin hieu khoa cua thi
+					//tat den roi khoa cua roi quay ve man hinh che do mac dinh
+					lcd_clear();
+					lcd_put_cur(0,4);
+					lcd_send_string("CORRECT!");
+					lcd_put_cur(1,0);
+					lcd_send_string("--- UNLOCKED ---");
+					wrongpass_count = 0;
+					//open door
+					htim1.Instance->CCR1 = 75; //quay 180 do
+					
+					
+					//turn on LED
+					HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13,GPIO_PIN_SET);
+					
+					
+					while(1) 
+					{
+						//do xong roi no cu chay xu ly trong vong lap nay mai thoi
+						//cho den khi nhan thay tin hieu tu nut bam thi tat den khoa cua roi break vong lap out ra ngoai vo man hinh mac dinh
+						if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_1) == GPIO_PIN_SET)
+						{
+							//tat den
+							HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13,GPIO_PIN_RESET);
+							//doi 3s roi khoa cua lai
+							//delay_ms(3000);
+							
+						
+							//close door 
+							htim1.Instance->CCR1 = 175; //quay 180 do
+							
+							
+							lcd_clear();
+							lcd_put_cur(0,2);
+							lcd_send_string("GOOD BYE ^-^");
+							lcd_put_cur(1,1);
+							lcd_send_string("SEE YOU AGAIN");
+							
+							HAL_Delay(1200);
+							break;
+						}
+						else 
+						{
+							//do nothing, just wait
+						}
+					}
+				} else //truong hop nhap sai mk 
+				{	
+					
+					++wrongpass_count;
+					lcd_clear();
+					lcd_put_cur(0,1);
+					lcd_send_string("ACCESS DENIED!");
+					lcd_put_cur(1,0);
+					lcd_send_string("PLEASE TRY AGAIN");
+					
+					if(wrongpass_count == 5)
+					{	
+						HAL_Delay(1000);
+						lcd_clear();
+						lcd_put_cur(0,0);
+						lcd_send_string("NHAP SAI > 5 LAN");
+						lcd_put_cur(1,0);
+						lcd_send_string("WAIT FOR 3 MINS");
+						
+						//actually we make 3 mins to simulate
+						delay_ms(180000);
+						wrongpass_count = 0;
+					}
+				}
+}
 /* USER CODE END 0 */
 
 /**
@@ -242,46 +369,109 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_TIM1_Init();
+  MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
-	lcd_init();
 	
-	lcd_clear();
-	lcd_put_cur(0,0);
-	lcd_send_string("WELCOME TO UIT");
-	lcd_put_cur(1,2);
-	lcd_send_string("CE FACULTY ^-^");
-	HAL_Delay(2000);
-	
-	lcd_clear();
-	lcd_put_cur(0,0);
-	lcd_send_string("ENTER PASSWORD: ");
-	
+	HAL_TIM_Base_Start_IT(&htim10);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+
+		lcd_clear();
+		lcd_put_cur(0,0);
+		lcd_send_string("WELCOME TO UIT");
+		lcd_put_cur(1,2);
+		lcd_send_string("CE FACULTY ^-^");
+		HAL_Delay(2000);
+			
+		lcd_clear();
+		lcd_put_cur(0,0);
+		lcd_send_string("CAI MATKHAU: ");
+			
+		lcd_put_cur(1,0);
+			//can mot vong lap loop neu nhu nhap sai mat khau mac dinh thi loop ke tu luc moi khoi dong
+			//neu nhu cho lau qua ma khong xac nhan doi mat khau thi comeback man hinh luc ban dau
+		memset(key,0,sizeof(key));
+			
+		password_enter(key,16);
+			
+			//done nhap mat khau duoc cai vo mang mat khau mac dinh de luu tru
+		
+		memcpy(default_pass,key,sizeof(key));
+		
+		memset(key,0, sizeof(key)); //clear key temp pass array
+		
+		
+	 /* USER CODE END WHILE */
+			//Mo ta dac tinh chuc nang o khoa thong minh
+		
+		//CHE DO:
+		//*: PASSWORD
+		//**: RFID
+		//***: DOI MK
+		//MINH SE LAM MOT CAI BAN TUTORIAL NHO NHO CODE WEB GIOI THIEU CHO NGUOI DUNG CHANG HAN XD host tren github
+		
+			/*=lcd_clear();
+			lcd_put_cur(0,1);
+			lcd_send_string("***WELCOME***");
+		
+			lcd_put_cur(1,0);
+			lcd_send_string("MODE: ");
+		
+			int j = 0;
+			int position = 5;
+			//chon che do
+			
+			while(j<4)
+			{
+				key[j] = read_keypad();
+			
+				if(key[j]=='#') 
+				{
+					break;
+				}
+			
+				if(key[j] != 0x01)
+				{
+					lcd_put_cur(1,position);
+					lcd_send_data(key[j]);
+					++j;
+					++position;
+				}
+				HAL_Delay(100);	
+		}
+		
+		memcpy(mode, key, sizeof(key));
+		
+		memset(key, 0, sizeof(key)); //clear key
+		
+		*/
+
+		
+		//MODE *: PASSWORD
+		
+		//if(strncmp((const char*) mode,"*#",2) == 0)
+		//{
+			//while(1) 
+			//{
+				
+			//}
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {	
+  {
     /* USER CODE END WHILE */
-		int i = 0;
-		//key[i] la mang giup de xac thuc mat khau luon
-		while(i<16)
-		{
-			key[i] = read_keypad();
-			if(key[i] != 0x01)
-			{
-				lcd_put_cur(1,i);
-				lcd_send_data(key[i]);
-				++i;
-			}
-			//detect '#'
-			
-			HAL_Delay(200);
-		}
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-}
+				HAL_Delay(1200);
+				keypad_password();
+				//ket thuc xu ly password
+				
+				//--- XU LY RFID ---
+				
+  }//endwhile
+	
+}//end main
 
 /**
   * @brief System Clock Configuration
@@ -319,7 +509,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
@@ -363,6 +553,112 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 1000;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 1000;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+  HAL_TIM_MspPostInit(&htim1);
+
+}
+
+/**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 10000;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 9999;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -374,10 +670,15 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_light_GPIO_Port, LED_light_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PA0 PA1 PA2 PA3 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3;
@@ -389,13 +690,40 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_light_Pin */
+  GPIO_InitStruct.Pin = LED_light_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(LED_light_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LOCK_BUTTON_Pin */
+  GPIO_InitStruct.Pin = LOCK_BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(LOCK_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
 }
 
 /* USER CODE BEGIN 4 */
+void delay_1ms(void)
+{
+ __HAL_TIM_SetCounter(&htim10, 0);
+ while (__HAL_TIM_GetCounter(&htim10)<10);
+}
 
+void delay_ms(long int time)
+{
+ long int i = 0;
+ for(i = 0; i < time; i++)
+ {
+   delay_1ms();
+ }
+
+}
 /* USER CODE END 4 */
 
 /**
