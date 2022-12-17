@@ -3,3 +3,5 @@ Using STM32F411E to build smart lock door with function: Using password and ID c
 
 <br>
 
+I will write fully Description and updated full resources later.
+
