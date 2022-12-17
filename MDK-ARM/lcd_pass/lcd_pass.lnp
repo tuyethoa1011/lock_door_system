@@ -5,6 +5,8 @@
 "lcd_pass\main.o"
 "lcd_pass\stm32f4xx_it.o"
 "lcd_pass\stm32f4xx_hal_msp.o"
+"lcd_pass\flash_sector_f4.o"
+"lcd_pass\lock_system.o"
 "lcd_pass\stm32f4xx_hal_i2c.o"
 "lcd_pass\stm32f4xx_hal_i2c_ex.o"
 "lcd_pass\stm32f4xx_hal_rcc.o"

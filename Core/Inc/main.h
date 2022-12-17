@@ -57,8 +57,6 @@ extern int _write(int fd, char *ptr, int len);
 
 /* USER CODE END EM */
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -69,14 +67,16 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define CS_Pin GPIO_PIN_6
 #define CS_GPIO_Port GPIOA
+#define KHOADIENTU_Pin GPIO_PIN_9
+#define KHOADIENTU_GPIO_Port GPIOD
+#define DENIED_LED_Pin GPIO_PIN_10
+#define DENIED_LED_GPIO_Port GPIOD
 #define PASSIVE_BUZZER_Pin GPIO_PIN_11
 #define PASSIVE_BUZZER_GPIO_Port GPIOD
 #define LED_light_Pin GPIO_PIN_13
 #define LED_light_GPIO_Port GPIOD
 #define RST_Pin GPIO_PIN_15
 #define RST_GPIO_Port GPIOA
-#define LOCK_BUTTON_Pin GPIO_PIN_1
-#define LOCK_BUTTON_GPIO_Port GPIOD
 #define CSD7_Pin GPIO_PIN_7
 #define CSD7_GPIO_Port GPIOD
 /* USER CODE BEGIN Private defines */

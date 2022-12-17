@@ -418,6 +418,16 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f4xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>FLASH_SECTOR_F4.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\FLASH_SECTOR_F4.c</FilePath>
+            </File>
+            <File>
+              <FileName>lock_system.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\lock_system.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

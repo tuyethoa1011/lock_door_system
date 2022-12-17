@@ -35,7 +35,9 @@ lcd_pass\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h
 lcd_pass\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 lcd_pass\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 lcd_pass\main.o: C:/Users/Hoa/STM32Cube_FW_F4_V1.27.0/Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery.h
-lcd_pass\main.o: ../Core/Inc/i2c-lcd.h
 lcd_pass\main.o: E:\Programing Dev Softwares\KeilC\KeilV5\ARM\ARMCC\Bin\..\include\string.h
-lcd_pass\main.o: ../Core/Inc/rc522.h
 lcd_pass\main.o: E:\Programing Dev Softwares\KeilC\KeilV5\ARM\ARMCC\Bin\..\include\stdio.h
+lcd_pass\main.o: ../Core/Inc/lock_system.h
+lcd_pass\main.o: ../Core/Inc/rc522.h
+lcd_pass\main.o: ../Core/Inc/i2c-lcd.h
+lcd_pass\main.o: ../Core/Inc/FLASH_SECTOR_F4.h
